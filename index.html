@@ -1,0 +1,2039 @@
+<!DOCTYPE html>
+<html lang="ar" dir="ltr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EduFocus Canvas</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
+  <style>
+    :root {
+      --bg-primary: #f0f2f5;
+      --bg-secondary: #ffffff;
+      --bg-toolbar: #1a1a2e;
+      --bg-sidebar: #ffffff;
+      --bg-canvas: #e8eaed;
+      --text-primary: #1a1a2e;
+      --text-secondary: #555;
+      --text-toolbar: #ffffff;
+      --accent: #6c63ff;
+      --accent-hover: #5a52d5;
+      --accent-light: rgba(108, 99, 255, 0.1);
+      --border: #ddd;
+      --shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      --shadow-lg: 0 4px 20px rgba(0, 0, 0, 0.15);
+      --success: #27ae60;
+      --warning: #f39c12;
+      --danger: #e74c3c;
+      --note-yellow: #fff9c4;
+      --note-pink: #f8bbd0;
+      --note-blue: #bbdefb;
+      --note-green: #c8e6c9;
+      --transition: all 0.3s ease;
+    }
+
+    [data-theme="dark"] {
+      --bg-primary: #0f0f23;
+      --bg-secondary: #1a1a2e;
+      --bg-toolbar: #16213e;
+      --bg-sidebar: #1a1a2e;
+      --bg-canvas: #12122a;
+      --text-primary: #e0e0e0;
+      --text-secondary: #aaa;
+      --text-toolbar: #ffffff;
+      --accent: #7c73ff;
+      --accent-hover: #9b93ff;
+      --accent-light: rgba(124, 115, 255, 0.15);
+      --border: #2a2a4a;
+      --shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+      --shadow-lg: 0 4px 20px rgba(0, 0, 0, 0.4);
+      --note-yellow: #3d3a1a;
+      --note-pink: #3d1f2a;
+      --note-blue: #1a2a3d;
+      --note-green: #1a3d2a;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #1e1e2e;
+      color: var(--text-primary);
+      overflow: hidden;
+      height: 100vh;
+      display: flex;
+      flex-direction: row;
+      transition: var(--transition);
+    }
+
+    /* ===== TOOLBAR (Vertical Left) ===== */
+    .toolbar {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      background: #16161e;
+      padding: 12px 6px;
+      gap: 6px;
+      z-index: 100;
+      box-shadow: 2px 0 10px rgba(0, 0, 0, 0.3);
+      width: 52px;
+      overflow-y: auto;
+      overflow-x: hidden;
+    }
+
+    .toolbar::-webkit-scrollbar {
+      width: 0;
+    }
+
+    .toolbar-brand {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 40px;
+      height: 40px;
+      user-select: none;
+      margin-bottom: 8px;
+    }
+
+    .toolbar-brand i {
+      font-size: 20px;
+      color: var(--accent);
+    }
+
+    .toolbar-brand span {
+      display: none;
+    }
+
+    .toolbar-divider {
+      width: 28px;
+      height: 1px;
+      background: rgba(255,255,255,0.15);
+      margin: 4px 0;
+    }
+
+    .toolbar-group {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .toolbar-group label {
+      display: none;
+    }
+
+    .tool-btn {
+      width: 38px;
+      height: 38px;
+      border: none;
+      border-radius: 10px;
+      background: transparent;
+      color: rgba(255,255,255,0.6);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 15px;
+      transition: var(--transition);
+      position: relative;
+    }
+
+    .tool-btn:hover {
+      background: rgba(255,255,255,0.1);
+      color: white;
+    }
+
+    .tool-btn.active {
+      background: var(--accent);
+      color: white;
+      box-shadow: 0 0 12px rgba(108, 99, 255, 0.4);
+    }
+
+    .tool-btn[title]::after {
+      content: attr(title);
+      position: absolute;
+      left: 48px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: #333;
+      color: white;
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 12px;
+      white-space: nowrap;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s;
+      z-index: 1000;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    }
+
+    .tool-btn:hover[title]::after {
+      opacity: 1;
+    }
+
+    .color-picker-wrapper {
+      position: relative;
+      width: 32px;
+      height: 32px;
+    }
+
+    .color-picker-wrapper input[type="color"] {
+      width: 32px;
+      height: 32px;
+      border: 2px solid rgba(255,255,255,0.2);
+      border-radius: 50%;
+      cursor: pointer;
+      background: none;
+      padding: 0;
+    }
+
+    .color-picker-wrapper input[type="color"]::-webkit-color-swatch-wrapper {
+      padding: 2px;
+    }
+
+    .color-picker-wrapper input[type="color"]::-webkit-color-swatch {
+      border-radius: 50%;
+      border: none;
+    }
+
+    .size-slider {
+      width: 32px;
+      height: 60px;
+      -webkit-appearance: none;
+      background: rgba(255,255,255,0.15);
+      border-radius: 4px;
+      outline: none;
+      writing-mode: bt-lr;
+      -webkit-appearance: slider-vertical;
+    }
+
+    .size-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 14px;
+      height: 14px;
+      background: var(--accent);
+      border-radius: 50%;
+      cursor: pointer;
+    }
+
+    .size-label {
+      color: rgba(255,255,255,0.6);
+      font-size: 10px;
+      min-width: 22px;
+      text-align: center;
+    }
+
+    .toolbar-spacer {
+      flex: 1;
+    }
+
+    .theme-toggle {
+      width: 38px;
+      height: 38px;
+      border: none;
+      border-radius: 10px;
+      background: transparent;
+      color: rgba(255,255,255,0.6);
+      cursor: pointer;
+      font-size: 16px;
+      transition: var(--transition);
+    }
+
+    .theme-toggle:hover {
+      background: rgba(255,255,255,0.1);
+      color: white;
+    }
+
+    .file-input-hidden {
+      display: none;
+    }
+
+    /* ===== MAIN LAYOUT ===== */
+    .main-layout {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    /* ===== CANVAS AREA ===== */
+    .canvas-area {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      background: #1e1e2e;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .canvas-container {
+      flex: 1;
+      position: relative;
+      overflow: auto;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 30px 20px 70px;
+      background: #1e1e2e;
+    }
+
+    .canvas-container::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+
+    .canvas-container::-webkit-scrollbar-track {
+      background: #15151f;
+    }
+
+    .canvas-container::-webkit-scrollbar-thumb {
+      background: #444;
+      border-radius: 4px;
+    }
+
+    .file-display-area {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-width: 100%;
+      min-height: 100%;
+    }
+
+    #pdf-canvas {
+      background: white;
+      box-shadow: 0 8px 40px rgba(0, 0, 0, 0.5);
+      max-width: 90%;
+      border-radius: 2px;
+    }
+
+    #docx-container, #xlsx-container, #pptx-container {
+      background: white;
+      box-shadow: 0 8px 40px rgba(0, 0, 0, 0.5);
+      padding: 40px;
+      max-width: 900px;
+      width: 90%;
+      min-height: 600px;
+      border-radius: 2px;
+      overflow: auto;
+    }
+
+    #docx-container {
+      font-size: 14px;
+      line-height: 1.8;
+    }
+
+    #docx-container h1, #docx-container h2, #docx-container h3 {
+      margin: 16px 0 8px;
+    }
+
+    #docx-container p {
+      margin-bottom: 8px;
+    }
+
+    #docx-container table {
+      border-collapse: collapse;
+      width: 100%;
+      margin: 12px 0;
+    }
+
+    #docx-container table td, #docx-container table th {
+      border: 1px solid #ccc;
+      padding: 8px 12px;
+    }
+
+    #xlsx-container table {
+      border-collapse: collapse;
+      width: 100%;
+    }
+
+    #xlsx-container table td, #xlsx-container table th {
+      border: 1px solid #ccc;
+      padding: 6px 10px;
+      font-size: 13px;
+    }
+
+    #xlsx-container table th {
+      background: #f0f0f0;
+      font-weight: bold;
+    }
+
+    .pptx-slide {
+      border: 1px solid #ddd;
+      margin-bottom: 16px;
+      padding: 20px;
+      background: white;
+      border-radius: 4px;
+      min-height: 300px;
+      position: relative;
+    }
+
+    .pptx-slide h2 {
+      font-size: 24px;
+      margin-bottom: 12px;
+    }
+
+    .pptx-slide p {
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    /* Drawing overlay canvas */
+    #drawing-canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      z-index: 50;
+      cursor: crosshair;
+      pointer-events: none;
+    }
+
+    #drawing-canvas.drawing-active {
+      pointer-events: auto;
+    }
+
+    /* Upload overlay */
+    .upload-overlay {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 10;
+      pointer-events: none;
+    }
+
+    .upload-overlay.hidden {
+      display: none;
+    }
+
+    .upload-box {
+      background: rgba(30, 30, 46, 0.9);
+      border: 2px dashed rgba(108, 99, 255, 0.5);
+      border-radius: 16px;
+      padding: 60px 80px;
+      text-align: center;
+      pointer-events: all;
+      cursor: pointer;
+      transition: var(--transition);
+    }
+
+    .upload-box:hover {
+      border-color: var(--accent);
+      background: rgba(108, 99, 255, 0.1);
+      transform: scale(1.02);
+    }
+
+    .upload-box.drag-over {
+      border-color: var(--accent);
+      background: rgba(108, 99, 255, 0.15);
+      transform: scale(1.05);
+    }
+
+    .upload-box i {
+      font-size: 60px;
+      color: var(--accent);
+      margin-bottom: 16px;
+    }
+
+    .upload-box h2 {
+      font-size: 20px;
+      margin-bottom: 8px;
+      color: var(--text-primary);
+    }
+
+    .upload-box p {
+      color: var(--text-secondary);
+      font-size: 14px;
+    }
+
+    .upload-box .formats {
+      margin-top: 12px;
+      display: flex;
+      gap: 8px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .upload-box .format-badge {
+      background: var(--accent-light);
+      color: var(--accent);
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    /* Page Navigation */
+    .page-nav {
+      position: absolute;
+      bottom: 16px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: rgba(30, 30, 46, 0.95);
+      padding: 8px 16px;
+      border-radius: 30px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+      z-index: 60;
+      backdrop-filter: blur(10px);
+    }
+
+    .page-nav.hidden {
+      display: none;
+    }
+
+    .page-nav button {
+      width: 32px;
+      height: 32px;
+      border: none;
+      border-radius: 50%;
+      background: var(--accent);
+      color: white;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      transition: var(--transition);
+    }
+
+    .page-nav button:hover {
+      background: var(--accent-hover);
+    }
+
+    .page-nav button:disabled {
+      background: #2a2a3a;
+      cursor: not-allowed;
+    }
+
+    .page-nav span {
+      font-size: 13px;
+      color: rgba(255,255,255,0.8);
+      min-width: 60px;
+      text-align: center;
+    }
+
+    /* ===== SIDEBAR ===== */
+    .sidebar {
+      width: 300px;
+      background: #16161e;
+      border-left: 1px solid #2a2a3a;
+      display: flex;
+      flex-direction: column;
+      transition: var(--transition);
+      overflow: hidden;
+    }
+
+    .sidebar.collapsed {
+      width: 0;
+      border-left: none;
+    }
+
+    .sidebar-tabs {
+      display: flex;
+      background: #1a1a26;
+      border-bottom: 1px solid #2a2a3a;
+    }
+
+    .sidebar-tab {
+      flex: 1;
+      padding: 12px 8px;
+      border: none;
+      background: transparent;
+      color: rgba(255,255,255,0.5);
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: var(--transition);
+      border-bottom: 2px solid transparent;
+    }
+
+    .sidebar-tab:hover {
+      color: var(--accent);
+      background: rgba(108, 99, 255, 0.08);
+    }
+
+    .sidebar-tab.active {
+      color: var(--accent);
+      border-bottom-color: var(--accent);
+    }
+
+    .sidebar-content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px;
+    }
+
+    .sidebar-content::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    .sidebar-content::-webkit-scrollbar-thumb {
+      background: #2a2a3a;
+      border-radius: 3px;
+    }
+
+    .sidebar-panel {
+      display: none;
+    }
+
+    .sidebar-panel.active {
+      display: block;
+    }
+
+    /* ===== POMODORO TIMER ===== */
+    .pomodoro-card {
+      background: rgba(30, 30, 46, 0.6);
+      border-radius: 16px;
+      padding: 24px;
+      text-align: center;
+    }
+
+    .timer-display {
+      font-size: 56px;
+      font-weight: 700;
+      color: var(--accent);
+      font-variant-numeric: tabular-nums;
+      margin: 20px 0;
+      letter-spacing: 2px;
+    }
+
+    .timer-label {
+      font-size: 14px;
+      color: var(--text-secondary);
+      margin-bottom: 16px;
+    }
+
+    .timer-progress {
+      width: 180px;
+      height: 180px;
+      border-radius: 50%;
+      margin: 0 auto 20px;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .timer-progress svg {
+      position: absolute;
+      transform: rotate(-90deg);
+    }
+
+    .timer-progress .progress-ring {
+      stroke: var(--border);
+      fill: none;
+      stroke-width: 6;
+    }
+
+    .timer-progress .progress-ring-fill {
+      stroke: var(--accent);
+      fill: none;
+      stroke-width: 6;
+      stroke-linecap: round;
+      transition: stroke-dashoffset 1s linear;
+    }
+
+    .timer-progress .timer-text {
+      font-size: 42px;
+      font-weight: 700;
+      color: var(--text-primary);
+      z-index: 1;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .timer-controls {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      margin-bottom: 20px;
+    }
+
+    .timer-btn {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: var(--transition);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .timer-btn.start {
+      background: var(--success);
+      color: white;
+    }
+
+    .timer-btn.pause {
+      background: var(--warning);
+      color: white;
+    }
+
+    .timer-btn.reset {
+      background: var(--danger);
+      color: white;
+    }
+
+    .timer-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow);
+    }
+
+    .timer-settings {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 10px;
+      margin-top: 16px;
+    }
+
+    .timer-setting {
+      text-align: center;
+    }
+
+    .timer-setting label {
+      display: block;
+      font-size: 11px;
+      color: var(--text-secondary);
+      margin-bottom: 4px;
+    }
+
+    .timer-setting input {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #2a2a3a;
+      border-radius: 8px;
+      text-align: center;
+      font-size: 14px;
+      font-weight: 600;
+      background: #1a1a26;
+      color: var(--text-primary);
+    }
+
+    .timer-sessions {
+      margin-top: 16px;
+      display: flex;
+      justify-content: center;
+      gap: 6px;
+    }
+
+    .session-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: #2a2a3a;
+      transition: var(--transition);
+    }
+
+    .session-dot.completed {
+      background: var(--success);
+    }
+
+    .session-dot.current {
+      background: var(--accent);
+      box-shadow: 0 0 8px rgba(108, 99, 255, 0.5);
+    }
+
+    /* ===== STICKY NOTES ===== */
+    .notes-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+
+    .notes-header h3 {
+      font-size: 16px;
+      color: var(--text-primary);
+    }
+
+    .add-note-btn {
+      padding: 6px 14px;
+      border: none;
+      border-radius: 8px;
+      background: var(--accent);
+      color: white;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      transition: var(--transition);
+    }
+
+    .add-note-btn:hover {
+      background: var(--accent-hover);
+    }
+
+    .note-colors {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 12px;
+    }
+
+    .note-color-btn {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      border: 2px solid transparent;
+      cursor: pointer;
+      transition: var(--transition);
+    }
+
+    .note-color-btn:hover,
+    .note-color-btn.active {
+      border-color: var(--text-primary);
+      transform: scale(1.15);
+    }
+
+    .sticky-notes-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .sticky-note {
+      border-radius: 12px;
+      padding: 14px;
+      box-shadow: var(--shadow);
+      position: relative;
+      transition: var(--transition);
+      animation: fadeIn 0.3s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(-10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .sticky-note:hover {
+      box-shadow: var(--shadow-lg);
+    }
+
+    .sticky-note textarea {
+      width: 100%;
+      border: none;
+      background: transparent;
+      resize: none;
+      font-size: 14px;
+      line-height: 1.6;
+      color: var(--text-primary);
+      font-family: inherit;
+      outline: none;
+      min-height: 60px;
+    }
+
+    .sticky-note .note-time {
+      font-size: 11px;
+      color: var(--text-secondary);
+      margin-top: 8px;
+    }
+
+    .sticky-note .note-actions {
+      position: absolute;
+      top: 8px;
+      left: 8px;
+      display: flex;
+      gap: 4px;
+      opacity: 0;
+      transition: var(--transition);
+    }
+
+    .sticky-note:hover .note-actions {
+      opacity: 1;
+    }
+
+    .note-action-btn {
+      width: 24px;
+      height: 24px;
+      border: none;
+      border-radius: 50%;
+      background: rgba(0,0,0,0.3);
+      color: rgba(255,255,255,0.7);
+      cursor: pointer;
+      font-size: 11px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: var(--transition);
+    }
+
+    .note-action-btn:hover {
+      background: rgba(0,0,0,0.5);
+    }
+
+    /* ===== SETTINGS PANEL ===== */
+    .settings-section {
+      margin-bottom: 20px;
+    }
+
+    .settings-section h4 {
+      font-size: 14px;
+      color: var(--text-primary);
+      margin-bottom: 12px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid #2a2a3a;
+    }
+
+    .setting-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 0;
+    }
+
+    .setting-item label {
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+
+    .toggle-switch {
+      position: relative;
+      width: 44px;
+      height: 24px;
+    }
+
+    .toggle-switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .toggle-slider {
+      position: absolute;
+      cursor: pointer;
+      inset: 0;
+      background: #2a2a3a;
+      border-radius: 24px;
+      transition: var(--transition);
+    }
+
+    .toggle-slider::before {
+      content: '';
+      position: absolute;
+      width: 18px;
+      height: 18px;
+      left: 3px;
+      bottom: 3px;
+      background: white;
+      border-radius: 50%;
+      transition: var(--transition);
+    }
+
+    .toggle-switch input:checked + .toggle-slider {
+      background: var(--accent);
+    }
+
+    .toggle-switch input:checked + .toggle-slider::before {
+      transform: translateX(20px);
+    }
+
+    /* ===== ZOOM CONTROLS ===== */
+    .zoom-controls {
+      position: absolute;
+      bottom: 16px;
+      right: 16px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(30, 30, 46, 0.95);
+      padding: 6px 10px;
+      border-radius: 20px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+      z-index: 60;
+      backdrop-filter: blur(10px);
+    }
+
+    .zoom-controls button {
+      width: 28px;
+      height: 28px;
+      border: none;
+      border-radius: 50%;
+      background: rgba(108, 99, 255, 0.15);
+      color: var(--accent);
+      cursor: pointer;
+      font-size: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: var(--transition);
+    }
+
+    .zoom-controls button:hover {
+      background: var(--accent);
+      color: white;
+    }
+
+    .zoom-controls span {
+      font-size: 12px;
+      font-weight: 600;
+      min-width: 40px;
+      text-align: center;
+      color: rgba(255,255,255,0.8);
+    }
+
+    /* ===== NOTIFICATION ===== */
+    .notification {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: rgba(30, 30, 46, 0.95);
+      border-left: 4px solid var(--accent);
+      padding: 12px 20px;
+      border-radius: 8px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+      z-index: 9999;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      animation: slideIn 0.3s ease, slideOut 0.3s ease 2.7s;
+      max-width: 300px;
+      backdrop-filter: blur(10px);
+    }
+
+    @keyframes slideIn {
+      from { transform: translateX(100%); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+
+    @keyframes slideOut {
+      from { transform: translateX(0); opacity: 1; }
+      to { transform: translateX(100%); opacity: 0; }
+    }
+
+    .notification i {
+      font-size: 18px;
+      color: var(--accent);
+    }
+
+    .notification span {
+      font-size: 13px;
+      color: var(--text-primary);
+    }
+
+    /* ===== TEXT INPUT OVERLAY ===== */
+    .text-input-overlay {
+      position: absolute;
+      z-index: 55;
+      display: none;
+    }
+
+    .text-input-overlay textarea {
+      border: 2px dashed var(--accent);
+      background: rgba(26, 26, 38, 0.95);
+      padding: 8px;
+      font-size: 16px;
+      font-family: inherit;
+      resize: both;
+      min-width: 150px;
+      min-height: 40px;
+      outline: none;
+      border-radius: 4px;
+      color: var(--text-primary);
+    }
+
+    /* ===== RESPONSIVE ===== */
+    @media (max-width: 900px) {
+      .sidebar {
+        width: 240px;
+      }
+    }
+
+    @media (max-width: 700px) {
+      .sidebar {
+        position: absolute;
+        right: 0;
+        top: 0;
+        bottom: 0;
+        z-index: 90;
+        width: 260px;
+      }
+      .sidebar.collapsed {
+        transform: translateX(100%);
+      }
+      .toolbar {
+        width: 44px;
+      }
+      .tool-btn {
+        width: 34px;
+        height: 34px;
+        font-size: 13px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ===== TOOLBAR (Vertical Left) ===== -->
+<div class="toolbar">
+  <div class="toolbar-brand">
+    <i class="fas fa-graduation-cap"></i>
+  </div>
+
+  <div class="toolbar-divider"></div>
+
+  <!-- File Tools -->
+  <div class="toolbar-group">
+    <button class="tool-btn" id="btn-upload" title="Upload File" onclick="document.getElementById('file-input').click()">
+      <i class="fas fa-folder-open"></i>
+    </button>
+    <input type="file" id="file-input" class="file-input-hidden" accept=".pdf,.docx,.xlsx,.pptx">
+  </div>
+
+  <div class="toolbar-divider"></div>
+
+  <!-- Drawing Tools -->
+  <div class="toolbar-group">
+    <button class="tool-btn active" id="btn-pen" title="Pen" onclick="setTool('pen')">
+      <i class="fas fa-pen"></i>
+    </button>
+    <button class="tool-btn" id="btn-highlighter" title="Highlighter" onclick="setTool('highlighter')">
+      <i class="fas fa-highlighter"></i>
+    </button>
+    <button class="tool-btn" id="btn-text" title="Text" onclick="setTool('text')">
+      <i class="fas fa-font"></i>
+    </button>
+    <button class="tool-btn" id="btn-eraser" title="Eraser" onclick="setTool('eraser')">
+      <i class="fas fa-eraser"></i>
+    </button>
+  </div>
+
+  <div class="toolbar-divider"></div>
+
+  <!-- Color & Size -->
+  <div class="toolbar-group">
+    <div class="color-picker-wrapper">
+      <input type="color" id="pen-color" value="#ff0000" title="Pen Color">
+    </div>
+    <div class="color-picker-wrapper">
+      <input type="color" id="highlighter-color" value="#ffff00" title="Highlighter Color">
+    </div>
+    <span class="size-label" id="pen-size-label">3</span>
+    <input type="range" class="size-slider" id="pen-size" min="1" max="20" value="3" orient="vertical">
+  </div>
+
+  <div class="toolbar-divider"></div>
+
+  <!-- Undo/Redo -->
+  <div class="toolbar-group">
+    <button class="tool-btn" id="btn-undo" title="Undo" onclick="undo()">
+      <i class="fas fa-undo"></i>
+    </button>
+    <button class="tool-btn" id="btn-redo" title="Redo" onclick="redo()">
+      <i class="fas fa-redo"></i>
+    </button>
+    <button class="tool-btn" id="btn-clear" title="Clear All" onclick="clearCanvas()">
+      <i class="fas fa-trash-alt"></i>
+    </button>
+  </div>
+
+  <div class="toolbar-spacer"></div>
+
+  <!-- Theme Toggle -->
+  <button class="theme-toggle" id="theme-toggle" title="Toggle Dark Mode" onclick="toggleTheme()">
+    <i class="fas fa-moon"></i>
+  </button>
+
+  <!-- Sidebar Toggle -->
+  <button class="tool-btn" id="btn-sidebar-toggle" title="Toggle Sidebar" onclick="toggleSidebar()">
+    <i class="fas fa-columns"></i>
+  </button>
+</div>
+
+<!-- ===== MAIN LAYOUT ===== -->
+<div class="main-layout">
+  <!-- Canvas Area -->
+  <div class="canvas-area">
+    <div class="canvas-container" id="canvas-container">
+      <!-- Upload Overlay -->
+      <div class="upload-overlay" id="upload-overlay">
+        <div class="upload-box" id="upload-box">
+          <i class="fas fa-cloud-upload-alt"></i>
+          <h2>Upload Your File</h2>
+          <p>Drag & drop or click to upload</p>
+          <div class="formats">
+            <span class="format-badge">PDF</span>
+            <span class="format-badge">DOCX</span>
+            <span class="format-badge">XLSX</span>
+            <span class="format-badge">PPTX</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- File Display -->
+      <div class="file-display-area" id="file-display-area" style="display:none;">
+        <canvas id="pdf-canvas" style="display:none;"></canvas>
+        <div id="docx-container" style="display:none;"></div>
+        <div id="xlsx-container" style="display:none;"></div>
+        <div id="pptx-container" style="display:none;"></div>
+        <!-- Drawing Canvas Overlay (inside file-display-area for scroll alignment) -->
+        <canvas id="drawing-canvas" style="display:none;"></canvas>
+        <!-- Text Input Overlay -->
+        <div class="text-input-overlay" id="text-input-overlay">
+          <textarea id="text-input-field" rows="2" placeholder="Type here..."></textarea>
+        </div>
+      </div>
+
+    <!-- Page Navigation -->
+    <div class="page-nav hidden" id="page-nav">
+      <button id="btn-prev-page" onclick="prevPage()"><i class="fas fa-chevron-left"></i></button>
+      <span id="page-info">1 / 1</span>
+      <button id="btn-next-page" onclick="nextPage()"><i class="fas fa-chevron-right"></i></button>
+    </div>
+
+    <!-- Zoom Controls -->
+    <div class="zoom-controls" id="zoom-controls" style="display:none;">
+      <button onclick="zoomOut()"><i class="fas fa-minus"></i></button>
+      <span id="zoom-level">100%</span>
+      <button onclick="zoomIn()"><i class="fas fa-plus"></i></button>
+      <button onclick="zoomReset()"><i class="fas fa-expand"></i></button>
+    </div>
+  </div>
+
+  <!-- Sidebar -->
+  <div class="sidebar" id="sidebar">
+    <div class="sidebar-tabs">
+      <button class="sidebar-tab active" data-tab="timer" onclick="switchTab('timer')">
+        <i class="fas fa-clock"></i> Timer
+      </button>
+      <button class="sidebar-tab" data-tab="notes" onclick="switchTab('notes')">
+        <i class="fas fa-sticky-note"></i> Notes
+      </button>
+      <button class="sidebar-tab" data-tab="settings" onclick="switchTab('settings')">
+        <i class="fas fa-cog"></i> Settings
+      </button>
+    </div>
+
+    <div class="sidebar-content">
+      <!-- Timer Panel -->
+      <div class="sidebar-panel active" id="panel-timer">
+        <div class="pomodoro-card">
+          <div class="timer-label" id="timer-mode-label">Focus Time</div>
+
+          <div class="timer-progress">
+            <svg width="180" height="180">
+              <circle class="progress-ring" cx="90" cy="90" r="82"></circle>
+              <circle class="progress-ring-fill" id="progress-ring" cx="90" cy="90" r="82"
+                stroke-dasharray="515.22" stroke-dashoffset="0"></circle>
+            </svg>
+            <div class="timer-text" id="timer-display">25:00</div>
+          </div>
+
+          <div class="timer-controls">
+            <button class="timer-btn start" id="btn-timer-start" onclick="startTimer()">
+              <i class="fas fa-play"></i> Start
+            </button>
+            <button class="timer-btn pause" id="btn-timer-pause" onclick="pauseTimer()" style="display:none;">
+              <i class="fas fa-pause"></i> Pause
+            </button>
+            <button class="timer-btn reset" onclick="resetTimer()">
+              <i class="fas fa-redo"></i> Reset
+            </button>
+          </div>
+
+          <div class="timer-sessions" id="timer-sessions">
+            <div class="session-dot current"></div>
+            <div class="session-dot"></div>
+            <div class="session-dot"></div>
+            <div class="session-dot"></div>
+          </div>
+
+          <div class="timer-settings">
+            <div class="timer-setting">
+              <label>Focus (min)</label>
+              <input type="number" id="focus-duration" value="25" min="1" max="90" onchange="updateTimerSettings()">
+            </div>
+            <div class="timer-setting">
+              <label>Short Break</label>
+              <input type="number" id="short-break" value="5" min="1" max="30" onchange="updateTimerSettings()">
+            </div>
+            <div class="timer-setting">
+              <label>Long Break</label>
+              <input type="number" id="long-break" value="15" min="1" max="60" onchange="updateTimerSettings()">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Notes Panel -->
+      <div class="sidebar-panel" id="panel-notes">
+        <div class="notes-header">
+          <h3>Sticky Notes</h3>
+          <button class="add-note-btn" onclick="addNote()">
+            <i class="fas fa-plus"></i> Add
+          </button>
+        </div>
+        <div class="note-colors" id="note-colors">
+          <button class="note-color-btn active" style="background:#fff9c4;" data-color="#fff9c4" onclick="setNoteColor(this)"></button>
+          <button class="note-color-btn" style="background:#f8bbd0;" data-color="#f8bbd0" onclick="setNoteColor(this)"></button>
+          <button class="note-color-btn" style="background:#bbdefb;" data-color="#bbdefb" onclick="setNoteColor(this)"></button>
+          <button class="note-color-btn" style="background:#c8e6c9;" data-color="#c8e6c9" onclick="setNoteColor(this)"></button>
+        </div>
+        <div class="sticky-notes-grid" id="notes-container">
+          <!-- Notes will be added dynamically -->
+        </div>
+      </div>
+
+      <!-- Settings Panel -->
+      <div class="sidebar-panel" id="panel-settings">
+        <div class="settings-section">
+          <h4>Appearance</h4>
+          <div class="setting-item">
+            <label>Dark Mode</label>
+            <div class="toggle-switch">
+              <input type="checkbox" id="dark-mode-toggle" onchange="toggleTheme()">
+              <span class="toggle-slider"></span>
+            </div>
+          </div>
+          <div class="setting-item">
+            <label>Grid Lines on Canvas</label>
+            <div class="toggle-switch">
+              <input type="checkbox" id="grid-toggle" onchange="toggleGrid()">
+              <span class="toggle-slider"></span>
+            </div>
+          </div>
+        </div>
+        <div class="settings-section">
+          <h4>Drawing</h4>
+          <div class="setting-item">
+            <label>Smooth Lines</label>
+            <div class="toggle-switch">
+              <input type="checkbox" id="smooth-toggle" checked>
+              <span class="toggle-slider"></span>
+            </div>
+          </div>
+        </div>
+        <div class="settings-section">
+          <h4>Data</h4>
+          <div class="setting-item">
+            <label>Export Notes</label>
+            <button class="timer-btn start" style="padding:6px 14px;font-size:12px;" onclick="exportNotes()">
+              <i class="fas fa-download"></i> Export
+            </button>
+          </div>
+          <div class="setting-item">
+            <label>Save Drawing</label>
+            <button class="timer-btn start" style="padding:6px 14px;font-size:12px;" onclick="saveDrawing()">
+              <i class="fas fa-image"></i> Save PNG
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ===== GLOBAL STATE =====
+let currentTool = 'pen';
+let isDrawing = false;
+let drawingCanvas, drawingCtx;
+let lastX, lastY;
+let currentPDF = null;
+let currentPage = 1;
+let totalPages = 0;
+let zoomScale = 1;
+let fileLoaded = false;
+let drawingHistory = [];
+let historyIndex = -1;
+let currentNoteColor = '#fff9c4';
+
+// Timer state
+let timerInterval = null;
+let timerRunning = false;
+let timerMode = 'focus'; // 'focus', 'shortBreak', 'longBreak'
+let timeRemaining = 25 * 60;
+let totalTimerTime = 25 * 60;
+let completedSessions = 0;
+
+// ===== INITIALIZATION =====
+document.addEventListener('DOMContentLoaded', () => {
+  pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  drawingCanvas = document.getElementById('drawing-canvas');
+  drawingCtx = drawingCanvas.getContext('2d');
+  setupEventListeners();
+  loadSavedTheme();
+  loadSavedNotes();
+});
+
+function setupEventListeners() {
+  const fileInput = document.getElementById('file-input');
+  fileInput.addEventListener('change', handleFileUpload);
+
+  const uploadBox = document.getElementById('upload-box');
+  uploadBox.addEventListener('click', () => fileInput.click());
+
+  const canvasContainer = document.getElementById('canvas-container');
+  canvasContainer.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    uploadBox.classList.add('drag-over');
+  });
+  canvasContainer.addEventListener('dragleave', () => {
+    uploadBox.classList.remove('drag-over');
+  });
+  canvasContainer.addEventListener('drop', (e) => {
+    e.preventDefault();
+    uploadBox.classList.remove('drag-over');
+    if (e.dataTransfer.files.length) {
+      fileInput.files = e.dataTransfer.files;
+      handleFileUpload({ target: { files: e.dataTransfer.files } });
+    }
+  });
+
+  drawingCanvas.addEventListener('mousedown', startDrawing);
+  drawingCanvas.addEventListener('mousemove', draw);
+  drawingCanvas.addEventListener('mouseup', stopDrawing);
+  drawingCanvas.addEventListener('mouseleave', stopDrawing);
+
+  drawingCanvas.addEventListener('touchstart', (e) => { e.preventDefault(); startDrawing(getTouchEvent(e)); });
+  drawingCanvas.addEventListener('touchmove', (e) => { e.preventDefault(); draw(getTouchEvent(e)); });
+  drawingCanvas.addEventListener('touchend', stopDrawing);
+
+  document.getElementById('pen-size').addEventListener('input', (e) => {
+    document.getElementById('pen-size-label').textContent = e.target.value;
+    setTool(currentTool);
+  });
+
+  document.getElementById('pen-color').addEventListener('input', (e) => {
+    drawingCtx.strokeStyle = e.target.value;
+  });
+
+  document.getElementById('highlighter-color').addEventListener('input', (e) => {
+    drawingCtx.strokeStyle = e.target.value;
+  });
+}
+
+function getTouchEvent(e) {
+  const touch = e.touches[0];
+  const rect = drawingCanvas.getBoundingClientRect();
+  return {
+    clientX: touch.clientX,
+    clientY: touch.clientY,
+    target: e.target
+  };
+}
+
+// ===== FILE HANDLING =====
+function handleFileUpload(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  const ext = file.name.split('.').pop().toLowerCase();
+  const reader = new FileReader();
+
+  document.getElementById('upload-overlay').classList.add('hidden');
+  document.getElementById('file-display-area').style.display = 'flex';
+  showNotification('File "' + file.name + '" loaded successfully');
+
+  if (ext === 'pdf') {
+    reader.readAsArrayBuffer(file);
+    reader.onload = function(ev) {
+      loadPDF(ev.target.result);
+    };
+  } else if (ext === 'docx') {
+    reader.readAsArrayBuffer(file);
+    reader.onload = function(ev) {
+      loadDOCX(ev.target.result);
+    };
+  } else if (ext === 'xlsx' || ext === 'xls') {
+    reader.readAsArrayBuffer(file);
+    reader.onload = function(ev) {
+      loadXLSX(ev.target.result);
+    };
+  } else if (ext === 'pptx') {
+    reader.readAsArrayBuffer(file);
+    reader.onload = function(ev) {
+      loadPPTX(ev.target.result);
+    };
+  } else {
+    showNotification('Unsupported file format');
+  }
+}
+
+// PDF Loading
+async function loadPDF(data) {
+  hideAllDisplays();
+  document.getElementById('pdf-canvas').style.display = 'block';
+  currentPDF = await pdfjsLib.getDocument({ data }).promise;
+  totalPages = currentPDF.numPages;
+  currentPage = 1;
+  fileLoaded = true;
+  document.getElementById('page-nav').classList.remove('hidden');
+  document.getElementById('zoom-controls').style.display = 'flex';
+  renderPDFPage();
+}
+
+async function renderPDFPage() {
+  const page = await currentPDF.getPage(currentPage);
+  const viewport = page.getViewport({ scale: zoomScale * 1.5 });
+  const canvas = document.getElementById('pdf-canvas');
+  canvas.width = viewport.width;
+  canvas.height = viewport.height;
+  const ctx = canvas.getContext('2d');
+  await page.render({ canvasContext: ctx, viewport }).promise;
+  resizeDrawingCanvas();
+  document.getElementById('page-info').textContent = currentPage + ' / ' + totalPages;
+}
+
+function prevPage() {
+  if (currentPage > 1) {
+    currentPage--;
+    renderPDFPage();
+  }
+}
+
+function nextPage() {
+  if (currentPage < totalPages) {
+    currentPage++;
+    renderPDFPage();
+  }
+}
+
+// DOCX Loading
+function loadDOCX(data) {
+  hideAllDisplays();
+  document.getElementById('docx-container').style.display = 'block';
+  mammoth.convertToHtml({ arrayBuffer: data })
+    .then(result => {
+      document.getElementById('docx-container').innerHTML = result.value;
+      fileLoaded = true;
+      resizeDrawingCanvas();
+    })
+    .catch(() => {
+      document.getElementById('docx-container').innerHTML = '<p style="color:red;">Error loading DOCX file</p>';
+    });
+}
+
+// XLSX Loading
+function loadXLSX(data) {
+  hideAllDisplays();
+  document.getElementById('xlsx-container').style.display = 'block';
+  const workbook = XLSX.read(data, { type: 'array' });
+  let html = '';
+  workbook.SheetNames.forEach(name => {
+    html += '<h3 style="margin:12px 0 8px;color:#333;">' + name + '</h3>';
+    html += XLSX.utils.sheet_to_html(workbook.Sheets[name]);
+  });
+  document.getElementById('xlsx-container').innerHTML = html;
+  fileLoaded = true;
+  resizeDrawingCanvas();
+}
+
+// PPTX Loading (real text extraction via JSZip)
+async function loadPPTX(data) {
+  hideAllDisplays();
+  document.getElementById('pptx-container').style.display = 'block';
+  try {
+    const zip = await JSZip.loadAsync(data);
+    const slideFiles = Object.keys(zip.files)
+      .filter(f => f.match(/^ppt\/slides\/slide\d+\.xml$/))
+      .sort((a, b) => {
+        const numA = parseInt(a.match(/slide(\d+)\.xml/)[1]);
+        const numB = parseInt(b.match(/slide(\d+)\.xml/)[1]);
+        return numA - numB;
+      });
+
+    if (slideFiles.length === 0) {
+      document.getElementById('pptx-container').innerHTML =
+        '<div style="text-align:center;padding:40px;color:#888;">No slides found in PPTX</div>';
+      fileLoaded = true;
+      resizeDrawingCanvas();
+      return;
+    }
+
+    let html = '';
+    for (let i = 0; i < slideFiles.length; i++) {
+      const xml = await zip.files[slideFiles[i]].async('string');
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(xml, 'application/xml');
+      const texts = doc.querySelectorAll('a:t');
+      let slideText = '';
+      texts.forEach(t => { slideText += t.textContent + ' '; });
+
+      html += '<div class="pptx-slide">';
+      html += '<div style="color:#888;font-size:12px;margin-bottom:8px;">Slide ' + (i + 1) + '</div>';
+      html += '<p>' + (slideText.trim() || '<em style="color:#aaa;">(empty slide)</em>') + '</p>';
+      html += '</div>';
+    }
+    document.getElementById('pptx-container').innerHTML = html;
+    fileLoaded = true;
+    resizeDrawingCanvas();
+  } catch (err) {
+    document.getElementById('pptx-container').innerHTML =
+      '<p style="color:red;">Error loading PPTX: ' + err.message + '</p>';
+  }
+}
+
+function hideAllDisplays() {
+  document.getElementById('pdf-canvas').style.display = 'none';
+  document.getElementById('docx-container').style.display = 'none';
+  document.getElementById('xlsx-container').style.display = 'none';
+  document.getElementById('pptx-container').style.display = 'none';
+  document.getElementById('page-nav').classList.add('hidden');
+  document.getElementById('zoom-controls').style.display = 'none';
+  currentPDF = null;
+}
+
+// ===== DRAWING TOOLS =====
+function setTool(tool) {
+  currentTool = tool;
+  ['pen', 'highlighter', 'text', 'eraser'].forEach(t => {
+    document.getElementById('btn-' + t).classList.remove('active');
+  });
+  document.getElementById('btn-' + tool).classList.add('active');
+
+  const penColorWrapper = document.getElementById('pen-color').parentElement;
+  const hlColorWrapper = document.getElementById('highlighter-color').parentElement;
+
+  if (tool === 'highlighter') {
+    penColorWrapper.style.display = 'none';
+    hlColorWrapper.style.display = 'block';
+  } else {
+    penColorWrapper.style.display = 'block';
+    hlColorWrapper.style.display = 'none';
+  }
+
+  if (tool === 'pen') {
+    drawingCanvas.classList.add('drawing-active');
+    drawingCanvas.style.cursor = 'crosshair';
+    drawingCtx.globalCompositeOperation = 'source-over';
+    drawingCtx.globalAlpha = 1;
+    drawingCtx.strokeStyle = document.getElementById('pen-color').value;
+    drawingCtx.lineWidth = document.getElementById('pen-size').value;
+  } else if (tool === 'highlighter') {
+    drawingCanvas.classList.add('drawing-active');
+    drawingCanvas.style.cursor = 'crosshair';
+    drawingCtx.globalCompositeOperation = 'source-over';
+    drawingCtx.globalAlpha = 0.35;
+    drawingCtx.strokeStyle = document.getElementById('highlighter-color').value;
+    drawingCtx.lineWidth = Math.max(12, parseInt(document.getElementById('pen-size').value) * 3);
+  } else if (tool === 'text') {
+    drawingCanvas.classList.add('drawing-active');
+    drawingCanvas.style.cursor = 'text';
+  } else if (tool === 'eraser') {
+    drawingCanvas.classList.add('drawing-active');
+    drawingCanvas.style.cursor = 'cell';
+    drawingCtx.globalCompositeOperation = 'destination-out';
+    drawingCtx.globalAlpha = 1;
+    drawingCtx.lineWidth = Math.max(8, parseInt(document.getElementById('pen-size').value) * 2);
+  } else {
+    drawingCanvas.classList.remove('drawing-active');
+  }
+}
+
+function startDrawing(e) {
+  if (currentTool === 'text') {
+    handleTextClick(e);
+    return;
+  }
+
+  isDrawing = true;
+  const rect = drawingCanvas.getBoundingClientRect();
+  lastX = e.clientX - rect.left;
+  lastY = e.clientY - rect.top;
+}
+
+function draw(e) {
+  if (!isDrawing) return;
+
+  const rect = drawingCanvas.getBoundingClientRect();
+  const x = e.clientX - rect.left;
+  const y = e.clientY - rect.top;
+
+  drawingCtx.beginPath();
+  drawingCtx.moveTo(lastX, lastY);
+  drawingCtx.lineTo(x, y);
+
+  const smooth = document.getElementById('smooth-toggle').checked;
+  if (smooth && currentTool !== 'eraser') {
+    drawingCtx.lineCap = 'round';
+    drawingCtx.lineJoin = 'round';
+  } else {
+    drawingCtx.lineCap = 'square';
+    drawingCtx.lineJoin = 'miter';
+  }
+
+  drawingCtx.stroke();
+  lastX = x;
+  lastY = y;
+}
+
+function stopDrawing() {
+  if (isDrawing) {
+    isDrawing = false;
+    saveHistory();
+  }
+}
+
+function handleTextClick(e) {
+  const overlay = document.getElementById('text-input-overlay');
+  const field = document.getElementById('text-input-field');
+  const canvasRect = drawingCanvas.getBoundingClientRect();
+
+  overlay.style.display = 'block';
+  overlay.style.left = (e.clientX - canvasRect.left) + 'px';
+  overlay.style.top = (e.clientY - canvasRect.top) + 'px';
+  field.value = '';
+  field.focus();
+
+  field.onblur = function() {
+    if (field.value.trim()) {
+      const x = parseInt(overlay.style.left);
+      const y = parseInt(overlay.style.top);
+      drawingCtx.globalCompositeOperation = 'source-over';
+      drawingCtx.globalAlpha = 1;
+      drawingCtx.font = document.getElementById('pen-size').value * 5 + 'px Segoe UI';
+      drawingCtx.fillStyle = document.getElementById('pen-color').value;
+      const lines = field.value.split('\n');
+      lines.forEach((line, i) => {
+        drawingCtx.fillText(line, x, y + 20 + (i * (parseInt(document.getElementById('pen-size').value) * 5 + 4)));
+      });
+      saveHistory();
+    }
+    overlay.style.display = 'none';
+  };
+}
+
+function clearCanvas() {
+  drawingCtx.clearRect(0, 0, drawingCanvas.width, drawingCanvas.height);
+  saveHistory();
+  showNotification('Canvas cleared');
+}
+
+function saveHistory() {
+  historyIndex++;
+  drawingHistory = drawingHistory.slice(0, historyIndex);
+  drawingHistory.push(drawingCanvas.toDataURL());
+}
+
+function undo() {
+  if (historyIndex > 0) {
+    historyIndex--;
+    restoreHistory();
+  }
+}
+
+function redo() {
+  if (historyIndex < drawingHistory.length - 1) {
+    historyIndex++;
+    restoreHistory();
+  }
+}
+
+function restoreHistory() {
+  const img = new Image();
+  img.onload = function() {
+    drawingCtx.clearRect(0, 0, drawingCanvas.width, drawingCanvas.height);
+    drawingCtx.drawImage(img, 0, 0);
+  };
+  img.src = drawingHistory[historyIndex];
+}
+
+function resizeDrawingCanvas() {
+  const displayArea = document.getElementById('file-display-area');
+  if (!displayArea || displayArea.style.display === 'none') return;
+  drawingCanvas.width = displayArea.scrollWidth;
+  drawingCanvas.height = displayArea.scrollHeight;
+  drawingCanvas.style.width = displayArea.scrollWidth + 'px';
+  drawingCanvas.style.height = displayArea.scrollHeight + 'px';
+  drawingCanvas.style.display = 'block';
+  setTool(currentTool);
+  saveHistory();
+}
+
+// ===== ZOOM =====
+function zoomIn() {
+  zoomScale = Math.min(zoomScale + 0.1, 3);
+  updateZoom();
+}
+
+function zoomOut() {
+  zoomScale = Math.max(zoomScale - 0.1, 0.3);
+  updateZoom();
+}
+
+function zoomReset() {
+  zoomScale = 1;
+  updateZoom();
+}
+
+function updateZoom() {
+  document.getElementById('zoom-level').textContent = Math.round(zoomScale * 100) + '%';
+  if (currentPDF) {
+    renderPDFPage();
+  }
+}
+
+// ===== THEME =====
+function toggleTheme() {
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  document.documentElement.setAttribute('data-theme', isDark ? '' : 'dark');
+  document.getElementById('dark-mode-toggle').checked = !isDark;
+  const icon = document.querySelector('#theme-toggle i');
+  icon.className = isDark ? 'fas fa-moon' : 'fas fa-sun';
+  localStorage.setItem('edu-theme', isDark ? 'light' : 'dark');
+}
+
+function loadSavedTheme() {
+  const saved = localStorage.getItem('edu-theme');
+  if (saved === 'dark') {
+    document.documentElement.setAttribute('data-theme', 'dark');
+    document.getElementById('dark-mode-toggle').checked = true;
+    document.querySelector('#theme-toggle i').className = 'fas fa-sun';
+  }
+}
+
+// ===== GRID =====
+function toggleGrid() {
+  const container = document.getElementById('canvas-container');
+  if (document.getElementById('grid-toggle').checked) {
+    container.style.backgroundImage = 'linear-gradient(rgba(0,0,0,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(0,0,0,0.05) 1px, transparent 1px)';
+    container.style.backgroundSize = '20px 20px';
+  } else {
+    container.style.backgroundImage = 'none';
+  }
+}
+
+// ===== SIDEBAR =====
+function toggleSidebar() {
+  const sidebar = document.getElementById('sidebar');
+  sidebar.classList.toggle('collapsed');
+  setTimeout(resizeDrawingCanvas, 350);
+}
+
+function switchTab(tab) {
+  document.querySelectorAll('.sidebar-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.sidebar-panel').forEach(p => p.classList.remove('active'));
+  document.querySelector('[data-tab="' + tab + '"]').classList.add('active');
+  document.getElementById('panel-' + tab).classList.add('active');
+}
+
+// ===== POMODORO TIMER =====
+function updateTimerDisplay() {
+  const minutes = Math.floor(timeRemaining / 60);
+  const seconds = timeRemaining % 60;
+  document.getElementById('timer-display').textContent =
+    String(minutes).padStart(2, '0') + ':' + String(seconds).padStart(2, '0');
+
+  const circumference = 2 * Math.PI * 82;
+  const offset = circumference * (1 - timeRemaining / totalTimerTime);
+  document.getElementById('progress-ring').setAttribute('stroke-dashoffset', offset);
+}
+
+function startTimer() {
+  if (timerRunning) return;
+  timerRunning = true;
+  document.getElementById('btn-timer-start').style.display = 'none';
+  document.getElementById('btn-timer-pause').style.display = 'flex';
+
+  timerInterval = setInterval(() => {
+    timeRemaining--;
+    updateTimerDisplay();
+    if (timeRemaining <= 0) {
+      clearInterval(timerInterval);
+      timerRunning = false;
+      onTimerComplete();
+    }
+  }, 1000);
+}
+
+function pauseTimer() {
+  clearInterval(timerInterval);
+  timerRunning = false;
+  document.getElementById('btn-timer-start').style.display = 'flex';
+  document.getElementById('btn-timer-pause').style.display = 'none';
+}
+
+function resetTimer() {
+  pauseTimer();
+  if (timerMode === 'focus') {
+    timeRemaining = parseInt(document.getElementById('focus-duration').value) * 60;
+  } else if (timerMode === 'shortBreak') {
+    timeRemaining = parseInt(document.getElementById('short-break').value) * 60;
+  } else {
+    timeRemaining = parseInt(document.getElementById('long-break').value) * 60;
+  }
+  totalTimerTime = timeRemaining;
+  updateTimerDisplay();
+}
+
+function onTimerComplete() {
+  document.getElementById('btn-timer-start').style.display = 'flex';
+  document.getElementById('btn-timer-pause').style.display = 'none';
+
+  if (timerMode === 'focus') {
+    completedSessions++;
+    updateSessionDots();
+    showNotification('Focus session complete! Time for a break.');
+    if (completedSessions % 4 === 0) {
+      switchToTimerMode('longBreak');
+    } else {
+      switchToTimerMode('shortBreak');
+    }
+  } else {
+    showNotification('Break is over! Ready to focus?');
+    switchToTimerMode('focus');
+  }
+}
+
+function switchToTimerMode(mode) {
+  timerMode = mode;
+  if (mode === 'focus') {
+    timeRemaining = parseInt(document.getElementById('focus-duration').value) * 60;
+    document.getElementById('timer-mode-label').textContent = 'Focus Time';
+  } else if (mode === 'shortBreak') {
+    timeRemaining = parseInt(document.getElementById('short-break').value) * 60;
+    document.getElementById('timer-mode-label').textContent = 'Short Break';
+  } else {
+    timeRemaining = parseInt(document.getElementById('long-break').value) * 60;
+    document.getElementById('timer-mode-label').textContent = 'Long Break';
+  }
+  totalTimerTime = timeRemaining;
+  updateTimerDisplay();
+}
+
+function updateTimerSettings() {
+  if (!timerRunning) {
+    resetTimer();
+  }
+}
+
+function updateSessionDots() {
+  const dots = document.querySelectorAll('.session-dot');
+  dots.forEach((dot, i) => {
+    dot.classList.remove('completed', 'current');
+    if (i < completedSessions % 4) {
+      dot.classList.add('completed');
+    }
+    if (i === completedSessions % 4) {
+      dot.classList.add('current');
+    }
+  });
+}
+
+// ===== STICKY NOTES =====
+function addNote() {
+  const container = document.getElementById('notes-container');
+  const note = document.createElement('div');
+  note.className = 'sticky-note';
+  note.style.background = currentNoteColor;
+  const now = new Date();
+  const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+  note.innerHTML =
+    '<div class="note-actions">' +
+      '<button class="note-action-btn" onclick="deleteNote(this)" title="Delete"><i class="fas fa-trash"></i></button>' +
+    '</div>' +
+    '<textarea placeholder="Write your note..." oninput="saveNotes()"></textarea>' +
+    '<div class="note-time">' + timeStr + '</div>';
+
+  container.prepend(note);
+  note.querySelector('textarea').focus();
+  saveNotes();
+}
+
+function deleteNote(btn) {
+  btn.closest('.sticky-note').remove();
+  saveNotes();
+}
+
+function setNoteColor(btn) {
+  document.querySelectorAll('.note-color-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  currentNoteColor = btn.dataset.color;
+}
+
+function saveNotes() {
+  const notes = [];
+  document.querySelectorAll('.sticky-note').forEach(note => {
+    notes.push({
+      text: note.querySelector('textarea').value,
+      color: note.style.background,
+      time: note.querySelector('.note-time').textContent
+    });
+  });
+  localStorage.setItem('edu-notes', JSON.stringify(notes));
+}
+
+function loadSavedNotes() {
+  const saved = localStorage.getItem('edu-notes');
+  if (saved) {
+    const notes = JSON.parse(saved);
+    const container = document.getElementById('notes-container');
+    notes.forEach(n => {
+      const note = document.createElement('div');
+      note.className = 'sticky-note';
+      note.style.background = n.color;
+      note.innerHTML =
+        '<div class="note-actions">' +
+          '<button class="note-action-btn" onclick="deleteNote(this)" title="Delete"><i class="fas fa-trash"></i></button>' +
+        '</div>' +
+        '<textarea placeholder="Write your note..." oninput="saveNotes()">' + (n.text || '') + '</textarea>' +
+        '<div class="note-time">' + n.time + '</div>';
+      container.appendChild(note);
+    });
+  }
+}
+
+function exportNotes() {
+  const notes = [];
+  document.querySelectorAll('.sticky-note').forEach(note => {
+    const text = note.querySelector('textarea').value;
+    if (text.trim()) notes.push(text);
+  });
+  if (notes.length === 0) {
+    showNotification('No notes to export');
+    return;
+  }
+  const blob = new Blob([notes.join('\n\n---\n\n')], { type: 'text/plain' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'edufocus-notes.txt';
+  a.click();
+  showNotification('Notes exported successfully');
+}
+
+function saveDrawing() {
+  const link = document.createElement('a');
+  link.download = 'edufocus-drawing.png';
+  link.href = drawingCanvas.toDataURL();
+  link.click();
+  showNotification('Drawing saved as PNG');
+}
+
+// ===== NOTIFICATIONS =====
+function showNotification(message) {
+  const existing = document.querySelector('.notification');
+  if (existing) existing.remove();
+
+  const notif = document.createElement('div');
+  notif.className = 'notification';
+  notif.innerHTML = '<i class="fas fa-info-circle"></i><span>' + message + '</span>';
+  document.body.appendChild(notif);
+  setTimeout(() => notif.remove(), 3200);
+}
+
+// Initialize
+updateTimerDisplay();
+</script>
+</body>
+</html>
